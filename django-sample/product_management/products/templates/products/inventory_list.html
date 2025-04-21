@@ -1,0 +1,52 @@
+{% extends "products/base.html" %} {% block title %}在庫管理{% endblock title %}
+{% block content %}
+<div class="row mb-4">
+	<div class="col">
+		<h2>在庫管理</h2>
+	</div>
+	<div class="col text-end">
+		<a href="{% url 'admin:products_inventory_add' %}" class="btn btn-primary">
+			在庫登録
+		</a>
+	</div>
+</div>
+
+{% if inventories %}
+<div class="table-responsive">
+	<table class="table table-striped table-hover">
+		<thead>
+			<tr>
+				<th>製品コード</th>
+				<th>製品名</th>
+				<th>在庫数</th>
+				<th>保管場所</th>
+				<th>最終更新</th>
+				<th>操作</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for inventory in inventories %}
+			<tr>
+				<td>{{ inventory.product.code }}</td>
+				<td>{{ inventory.product.name }}</td>
+				<td>{{ inventory.quantity }}</td>
+				<td>{{ inventory.location }}</td>
+				<td>{{ inventory.updated_at|date:"Y/m/d H:i" }}</td>
+				<td>
+					<a
+						href="{% url 'admin:products_inventory_change' inventory.id %}"
+						class="btn btn-sm btn-outline-primary"
+					>
+						編集
+					</a>
+				</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+</div>
+{% else %}
+<div class="alert alert-info">
+	在庫情報が登録されていません。在庫登録ボタンから登録してください。
+</div>
+{% endif %} {% endblock content %}

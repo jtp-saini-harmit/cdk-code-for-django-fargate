@@ -1,0 +1,51 @@
+{% extends "products/base.html" %} {% block title %}製品一覧{% endblock title %}
+{% block content %}
+<div class="row mb-4">
+	<div class="col">
+		<h2>製品一覧</h2>
+	</div>
+	<div class="col text-end">
+		<a href="{% url 'admin:products_product_add' %}" class="btn btn-primary">
+			新規製品登録
+		</a>
+	</div>
+</div>
+
+{% if products %}
+<div class="table-responsive">
+	<table class="table table-striped table-hover">
+		<thead>
+			<tr>
+				<th>製品コード</th>
+				<th>製品名</th>
+				<th>在庫数</th>
+				<th>操作</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for product in products %}
+			<tr>
+				<td>{{ product.code }}</td>
+				<td>{{ product.name }}</td>
+				<td>
+					{% for inventory in product.inventory_set.all %} {{ inventory.quantity
+					}} {% empty %} 0 {% endfor %}
+				</td>
+				<td>
+					<a
+						href="{% url 'admin:products_product_change' product.id %}"
+						class="btn btn-sm btn-outline-primary"
+					>
+						編集
+					</a>
+				</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+</div>
+{% else %}
+<div class="alert alert-info">
+	製品が登録されていません。新規製品登録ボタンから製品を登録してください。
+</div>
+{% endif %} {% endblock content %}

@@ -6,3 +6,15 @@ node_modules
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.egg
+*.whl
+*.cover
+
+.venv/

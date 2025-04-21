@@ -1,0 +1,52 @@
+{% extends "products/base.html" %} {% block title %}製造指示一覧{% endblock %}
+{% block content %}
+<div class="row mb-4">
+	<div class="col">
+		<h2>製造指示一覧</h2>
+	</div>
+	<div class="col text-end">
+		<a href="{% url 'production-order-create' %}" class="btn btn-primary">
+			新規製造指示作成
+		</a>
+	</div>
+</div>
+
+{% if orders %}
+<div class="table-responsive">
+	<table class="table table-striped table-hover">
+		<thead>
+			<tr>
+				<th>製品</th>
+				<th>工程</th>
+				<th>数量</th>
+				<th>計画日</th>
+				<th>状態</th>
+				<th>操作</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for order in orders %}
+			<tr>
+				<td>{{ order.product.name }}</td>
+				<td>{{ order.process.name }}</td>
+				<td>{{ order.quantity }}</td>
+				<td>{{ order.planned_date }}</td>
+				<td>{{ order.get_status_display }}</td>
+				<td>
+					<a
+						href="{% url 'admin:products_productionorder_change' order.id %}"
+						class="btn btn-sm btn-outline-primary"
+					>
+						編集
+					</a>
+				</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+</div>
+{% else %}
+<div class="alert alert-info">
+	製造指示が登録されていません。新規製造指示作成ボタンから登録してください。
+</div>
+{% endif %} {% endblock %}
