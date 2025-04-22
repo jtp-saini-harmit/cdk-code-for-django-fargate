@@ -81,6 +81,65 @@ export class MyArchitectureStack extends cdk.Stack {
 		});
 
 		// RDS Proxyの作成
+		// EC2インスタンスのセキュリティグループ
+		const ec2SecurityGroup = new ec2.SecurityGroup(this, "EC2SecurityGroup", {
+			vpc,
+			allowAllOutbound: true,
+			description: "Security group for EC2 instance",
+		});
+
+		// RDSセキュリティグループにEC2からのアクセスを許可
+		dbSecurityGroup.addIngressRule(
+			ec2SecurityGroup,
+			ec2.Port.tcp(5432),
+			"Allow access from EC2"
+		);
+
+		// EC2用のIAMロール
+		const ec2Role = new iam.Role(this, "EC2Role", {
+			assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
+		});
+
+		// SystemsManager用のポリシーを追加
+		ec2Role.addManagedPolicy(
+			iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore")
+		);
+
+		// RDSへの接続用ポリシーを追加
+		ec2Role.addToPolicy(
+			new iam.PolicyStatement({
+				effect: iam.Effect.ALLOW,
+				actions: [
+					"rds-db:connect",
+					"rds:*",
+					"secretsmanager:GetSecretValue",
+					"secretsmanager:DescribeSecret",
+				],
+				resources: [
+					`arn:aws:rds-db:${this.region}:${this.account}:dbuser:*/*`,
+					`arn:aws:rds:${this.region}:${this.account}:db:${database.instanceIdentifier}`,
+					database.secret?.secretArn || "*",
+				],
+			})
+		);
+
+		// EC2インスタンスの作成
+		const ec2Instance = new ec2.Instance(this, "DatabaseManagementInstance", {
+			vpc,
+			vpcSubnets: {
+				subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+			},
+			instanceType: ec2.InstanceType.of(
+				ec2.InstanceClass.T3,
+				ec2.InstanceSize.MICRO
+			),
+			machineImage: new ec2.AmazonLinuxImage({
+				generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
+			}),
+			securityGroup: ec2SecurityGroup,
+			role: ec2Role,
+		});
+
 		const proxy = new rds.DatabaseProxy(this, "DatabaseProxy", {
 			proxyTarget: rds.ProxyTarget.fromInstance(database),
 			vpc,
