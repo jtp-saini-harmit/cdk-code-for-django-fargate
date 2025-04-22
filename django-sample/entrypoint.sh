@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd /app/product_management
+
 # 静的ファイルの収集
 python manage.py collectstatic --noinput
 
@@ -12,14 +14,17 @@ if [ "$DJANGO_SUPERUSER_CREATE" = "true" ]; then
     echo "from django.contrib.auth.models import User; User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'admin@example.com', 'admin')" | python manage.py shell
 fi
 
-# Gunicornを起動（本番環境向け設定）
-exec gunicorn product_management.wsgi:application \
-    --bind 0.0.0.0:8000 \
-    --workers 3 \
+# uWSGIをソケットモードで起動（本番環境向け設定）
+exec uwsgi \
+    --socket :8000 \
+    --module product_management.wsgi:application \
+    --master \
+    --processes 3 \
     --threads 2 \
-    --worker-class gthread \
-    --worker-tmp-dir /dev/shm \
-    --access-logfile - \
-    --error-logfile - \
-    --log-level info \
-    --timeout 300
+    --enable-threads \
+    --reload-on-rss 2048 \
+    --reload-on-as 1024 \
+    --logto - \
+    --log-date \
+    --harakiri 300 \
+    --chmod-socket=666

@@ -1,13 +1,25 @@
 version: "3.8"
 
 services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+      - static_volume:/app/static
+      - media_volume:/app/media
+    depends_on:
+      - web
+
   web:
     build: .
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
-      - ./product_management:/app
-    ports:
-      - "8000:8000"
+      - ./product_management:/app/product_management
+      - static_volume:/app/static
+      - media_volume:/app/media
+    expose:
+      - "8000"
     environment:
       - DJANGO_SETTINGS_MODULE=product_management.settings
     depends_on:
@@ -26,3 +38,5 @@ services:
 
 volumes:
   postgres_data:
+  static_volume:
+  media_volume:
