@@ -1,0 +1,213 @@
+{% extends 'products/base.html' %}
+
+{% block content %}
+<h2 class="mb-4">Dashboard</h2>
+
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card products">
+            <div class="card-body">
+                <h5 class="card-title">Total Products</h5>
+                <h2 class="mb-0">{{ total_products|default:"0" }}</h2>
+                <p class="text-muted">In Stock: {{ total_stock|default:"0" }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card categories">
+            <div class="card-body">
+                <h5 class="card-title">Categories</h5>
+                <h2 class="mb-0">{{ total_categories|default:"0" }}</h2>
+                <p class="text-muted">Active Categories</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card customers">
+            <div class="card-body">
+                <h5 class="card-title">Customers</h5>
+                <h2 class="mb-0">{{ total_customers|default:"0" }}</h2>
+                <p class="text-muted">Registered Customers</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card sales">
+            <div class="card-body">
+                <h5 class="card-title">Total Sales</h5>
+                <h2 class="mb-0">¥{{ total_sales|default:"0.00" }}</h2>
+                <p class="text-muted">Last 30 Days</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Sales Overview</h5>
+            </div>
+            <div class="card-body">
+                {% if sales_data %}
+                <canvas id="salesChart" height="300"></canvas>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-graph-up"></i>
+                    <h4>No Sales Data Available</h4>
+                    <p class="text-muted">Start making sales to see your statistics here.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Top Products</h5>
+            </div>
+            <div class="card-body">
+                {% if top_products %}
+                <div class="list-group list-group-flush">
+                    {% for product in top_products %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">{{ product.name }}</h6>
+                                <small class="text-muted">{{ product.category.name }}</small>
+                            </div>
+                            <span class="badge bg-success rounded-pill">{{ product.sales_count }} sold</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-box-seam"></i>
+                    <h4>No Products Sold</h4>
+                    <p class="text-muted">Your top selling products will appear here.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Sales</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_sales %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in recent_sales %}
+                            <tr>
+                                <td>{{ sale.customer.name }}</td>
+                                <td>¥{{ sale.total_amount }}</td>
+                                <td>
+                                    <span class="badge {% if sale.status == 'completed' %}bg-success{% elif sale.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                                        {{ sale.status|title }}
+                                    </span>
+                                </td>
+                                <td>{{ sale.sale_date|date:"M d, Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-receipt"></i>
+                    <h4>No Recent Sales</h4>
+                    <p class="text-muted">Your recent sales will appear here.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Low Stock Alert</h5>
+            </div>
+            <div class="card-body">
+                {% if low_stock_products %}
+                <div class="list-group list-group-flush">
+                    {% for product in low_stock_products %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">{{ product.name }}</h6>
+                                <small class="text-muted">{{ product.category.name }}</small>
+                            </div>
+                            <span class="badge bg-danger rounded-pill">{{ product.stock }} left</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <h4>Stock Levels Good</h4>
+                    <p class="text-muted">Products with low stock will appear here.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if sales_data %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ dates|safe }},
+            datasets: [{
+                label: 'Sales',
+                data: {{ sales_amounts|safe }},
+                borderColor: '#3498db',
+                tension: 0.4,
+                fill: true,
+                backgroundColor: 'rgba(52, 152, 219, 0.1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '¥' + value;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

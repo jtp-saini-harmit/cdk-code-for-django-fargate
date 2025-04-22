@@ -1,0 +1,48 @@
+{% extends 'products/base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>売上一覧</h1>
+    </div>
+
+    {% if object_list %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>顧客名</th>
+                    <th>販売日</th>
+                    <th>合計金額</th>
+                    <th>状態</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in object_list %}
+                <tr>
+                    <td>{{ sale.id }}</td>
+                    <td>{{ sale.customer.name }}</td>
+                    <td>{{ sale.sale_date|date:"Y-m-d H:i" }}</td>
+                    <td>¥{{ sale.total_amount|floatformat:0 }}</td>
+                    <td>
+                        <span class="badge {% if sale.status == 'completed' %}bg-success{% elif sale.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                            {% if sale.status == 'completed' %}完了
+                            {% elif sale.status == 'pending' %}保留中
+                            {% else %}キャンセル{% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-cart"></i>
+        <h3>売上データがありません</h3>
+        <p>システムに売上記録がありません。</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

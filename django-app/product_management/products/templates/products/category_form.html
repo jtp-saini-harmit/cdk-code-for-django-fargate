@@ -1,0 +1,107 @@
+{% extends 'products/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">{% if category %}カテゴリーの編集{% else %}新規カテゴリー{% endif %}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="id_name" class="form-label">カテゴリー名</label>
+                        <input type="text" name="name" id="id_name" class="form-control {% if form.name.errors %}is-invalid{% endif %}" 
+                               value="{{ form.name.value|default:'' }}" required>
+                        {% if form.name.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.name.errors|join:", " }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="id_description" class="form-label">説明</label>
+                        <textarea name="description" id="id_description" class="form-control {% if form.description.errors %}is-invalid{% endif %}" 
+                                  rows="4">{{ form.description.value|default:'' }}</textarea>
+                        {% if form.description.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.description.errors|join:", " }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'products:category_list' %}" class="btn btn-outline-secondary">
+                            キャンセル
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            {% if category %}変更を保存{% else %}カテゴリーを追加{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if category %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card bg-light">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">危険ゾーン</h6>
+                        <p class="text-muted mb-0">このカテゴリーを削除</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCategoryModal">
+                        カテゴリーを削除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">カテゴリーの削除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">"{{ category.name }}"を削除してもよろしいですか？このカテゴリーに含まれる全ての商品も削除されます。この操作は取り消せません。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <form action="{% url 'products:category_delete' category.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">削除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+});
+</script>
+{% endblock %}

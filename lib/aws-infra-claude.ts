@@ -175,8 +175,20 @@ export class MyArchitectureStack extends cdk.Stack {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 
-    // ECS Cluster
-    const cluster = new ecs.Cluster(this, 'ProductManagementCluster', {
+// ECR Repository
+const repository = new ecr.Repository(this, 'DjangoAppRepository', {
+  repositoryName: 'django-app-repo',
+  removalPolicy: cdk.RemovalPolicy.DESTROY,
+  lifecycleRules: [
+    {
+      maxImageCount: 3,
+      description: 'Only keep 3 images',
+    },
+  ],
+});
+
+// ECS Cluster
+const cluster = new ecs.Cluster(this, 'ProductManagementCluster', {
       vpc,
       containerInsights: true,
     });
@@ -195,8 +207,8 @@ export class MyArchitectureStack extends cdk.Stack {
     taskDef.addVolume(sharedVolume);
 
     // Django application container
-    const djangoContainer = taskDef.addContainer('DjangoContainer', {
-      image: ecs.ContainerImage.fromRegistry('public.ecr.aws/aws-containers/django-demo:latest'),
+const djangoContainer = taskDef.addContainer('DjangoContainer', {
+      image: ecs.ContainerImage.fromEcrRepository(repository),
       memoryLimitMiB: 1024,
       logging: ecs.LogDrivers.awsLogs({
         streamPrefix: 'django',
@@ -367,10 +379,25 @@ export class MyArchitectureStack extends cdk.Stack {
       }),
     );
 
-    // Output the ALB DNS name
+    // Output the ALB DNS name and RDS details
     new cdk.CfnOutput(this, 'LoadBalancerDNS', {
       value: alb.loadBalancerDnsName,
       description: 'The DNS name of the load balancer',
+    });
+
+    new cdk.CfnOutput(this, 'RDSProxyEndpoint', {
+      value: rdsProxy.endpoint,
+      description: 'The endpoint of the RDS proxy',
+    });
+
+    new cdk.CfnOutput(this, 'DatabaseName', {
+      value: dbSecret.secretValueFromJson('dbname').toString(),
+      description: 'The name of the database',
+    });
+
+    new cdk.CfnOutput(this, 'DatabaseSecretARN', {
+      value: dbSecret.secretArn,
+      description: 'The ARN of the database credentials secret',
     });
   }
 }

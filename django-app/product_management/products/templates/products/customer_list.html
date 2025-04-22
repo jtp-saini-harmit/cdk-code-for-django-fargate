@@ -1,0 +1,110 @@
+{% extends 'products/base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>顧客一覧</h1>
+        <a href="{% url 'products:customer_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> 新規顧客
+        </a>
+    </div>
+
+    {% if object_list %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>顧客名</th>
+                    <th>メールアドレス</th>
+                    <th>電話番号</th>
+                    <th>住所</th>
+                    <th>購入回数</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in object_list %}
+                <tr>
+                    <td>{{ customer.name }}</td>
+                    <td>{{ customer.email }}</td>
+                    <td>{{ customer.phone }}</td>
+                    <td>{{ customer.address|truncatewords:10 }}</td>
+                    <td>{{ customer.total_purchases }}</td>
+                    <td>
+                        <div class="btn-group">
+                            <a href="{% url 'products:customer_edit' customer.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil"></i> 編集
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCustomerModal{{ customer.id }}">
+                                <i class="bi bi-trash"></i> 削除
+                            </button>
+                        </div>
+
+                        <!-- Delete Modal -->
+                        <div class="modal fade" id="deleteCustomerModal{{ customer.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">顧客の削除</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p class="mb-0">"{{ customer.name }}"を削除してもよろしいですか？この顧客に関連する全ての売上情報も削除されます。この操作は取り消せません。</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                                        <form action="{% url 'products:customer_delete' customer.id %}" method="post" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger">削除</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <nav aria-label="ページ送り">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1">&laquo; 最初</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">前へ</a>
+            </li>
+            {% endif %}
+
+            <li class="page-item disabled">
+                <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">次へ</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">最後 &raquo;</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-people"></i>
+        <h3>顧客が見つかりません</h3>
+        <p>システムに顧客が登録されていません。</p>
+        <a href="{% url 'products:customer_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> 新規顧客を登録
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

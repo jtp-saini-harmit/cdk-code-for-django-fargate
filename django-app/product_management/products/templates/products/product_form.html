@@ -1,0 +1,199 @@
+{% extends 'products/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">{% if product %}Edit Product{% else %}Add New Product{% endif %}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="id_name" class="form-label">Product Name</label>
+                        <input type="text" name="name" id="id_name" class="form-control {% if form.name.errors %}is-invalid{% endif %}" 
+                               value="{{ form.name.value|default:'' }}" required>
+                        {% if form.name.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.name.errors|join:", " }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_category" class="form-label">Category</label>
+                        <select name="category" id="id_category" class="form-select {% if form.category.errors %}is-invalid{% endif %}" required>
+                            <option value="">Select Category</option>
+                            {% for category in form.category.field.queryset %}
+                            <option value="{{ category.id }}" {% if form.category.value|stringformat:"i" == category.id|stringformat:"i" %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if form.category.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.category.errors|join:", " }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_description" class="form-label">Description</label>
+                        <textarea name="description" id="id_description" class="form-control {% if form.description.errors %}is-invalid{% endif %}" 
+                                  rows="4" required>{{ form.description.value|default:'' }}</textarea>
+                        {% if form.description.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.description.errors|join:", " }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_price" class="form-label">Price (¥)</label>
+                                <input type="number" name="price" id="id_price" class="form-control {% if form.price.errors %}is-invalid{% endif %}" 
+                                       value="{{ form.price.value|default:'' }}" step="0.01" min="0.01" required>
+                                {% if form.price.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.price.errors|join:", " }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_stock" class="form-label">Stock</label>
+                                <input type="number" name="stock" id="id_stock" class="form-control {% if form.stock.errors %}is-invalid{% endif %}" 
+                                       value="{{ form.stock.value|default:'' }}" min="0" required>
+                                {% if form.stock.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.stock.errors|join:", " }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="id_image" class="form-label">Product Image</label>
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px;">
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                <input type="file" name="image" id="id_image" class="form-control {% if form.image.errors %}is-invalid{% endif %}" 
+                                       accept="image/*">
+                                {% if form.image.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.image.errors|join:", " }}
+                                </div>
+                                {% endif %}
+                                {% if product.image %}
+                                <div class="form-check mt-2">
+                                    <input type="checkbox" name="delete_image" id="id_delete_image" class="form-check-input">
+                                    <label class="form-check-label" for="id_delete_image">Delete existing image</label>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <small class="text-muted">Maximum file size: 5MB. Supported formats: JPG, PNG, GIF</small>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'products:product_list' %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            {% if product %}Save Changes{% else %}Add Product{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if product %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card bg-light">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Danger Zone</h6>
+                        <p class="text-muted mb-0">Delete this product</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteProductModal">
+                        Delete Product
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteProductModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Are you sure you want to delete "{{ product.name }}"? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{% url 'products:product_delete' product.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Preview image before upload
+    const imageInput = document.getElementById('id_image');
+    if (imageInput) {
+        imageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const existingImage = imageInput.parentElement.previousElementSibling;
+                    if (existingImage && existingImage.tagName === 'IMG') {
+                        existingImage.src = e.target.result;
+                    } else {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.style.cssText = 'width: 100px; height: 100px; object-fit: cover; border-radius: 4px;';
+                        imageInput.parentElement.parentElement.insertBefore(img, imageInput.parentElement);
+                    }
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+});
+</script>
+{% endblock %}

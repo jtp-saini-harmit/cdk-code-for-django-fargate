@@ -1,21 +1,29 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { MyArchitectureStack } from '../lib/aws-infra-claude';
+import { HSMyArchitectureStack } from '../lib/aws-infra';
 
 const app = new cdk.App();
-new MyArchitectureStack(app, 'AwsInfraStack', {
-  /* If you don't specify 'env', this stack will be environment-agnostic.
-   * Account/Region-dependent features and context lookups will not work,
-   * but a single synthesized template can be deployed anywhere. */
 
-  /* Uncomment the next line to specialize this stack for the AWS Account
-   * and Region that are implied by the current CLI configuration. */
-  // env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
-
-  /* Uncomment the next line if you know exactly what Account and Region you
-   * want to deploy the stack to. */
-  // env: { account: '123456789012', region: 'us-east-1' },
-
-  /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
+// Deploy network and database infrastructure
+const myStack = new HSMyArchitectureStack(app, 'HSMyArchitectureStack', {
+  env: { 
+    account: process.env.CDK_DEFAULT_ACCOUNT, 
+    region: process.env.CDK_DEFAULT_REGION 
+  },
 });
+
+app.synth();
+
+/*
+To deploy separately:
+
+1. Build and push Docker image:
+   aws ecr get-login-password | docker login --username AWS --password-stdin 495599737203.dkr.ecr.ap-northeast-1.amazonaws.com
+   docker build -t products-django-app ./django-app
+   docker tag products-django-app:latest 495599737203.dkr.ecr.ap-northeast-1.amazonaws.com/products-django-app:latest
+   docker push 495599737203.dkr.ecr.ap-northeast-1.amazonaws.com/products-django-app:latest
+
+1. Deploy AWS Stack:
+   cdk deploy HSMyArchitectureStack
+*/
