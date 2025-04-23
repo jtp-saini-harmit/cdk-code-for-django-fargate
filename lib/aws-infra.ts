@@ -7,9 +7,9 @@ import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
-
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 export class HSMyArchitectureStack extends cdk.Stack {
-
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -153,16 +153,18 @@ export class HSMyArchitectureStack extends cdk.Stack {
         description: "Security group for ALB",
     });
 
+    // Allow HTTP traffic
     albSecurityGroup.addIngressRule(
         ec2.Peer.anyIpv4(),
-        ec2.Port.tcp(8000),
-        "Allow all traffic on port 8000" 
+        ec2.Port.tcp(80),
+        "Allow HTTP traffic"
     );
 
+    // Allow outbound traffic
     albSecurityGroup.addEgressRule(
         ec2.Peer.anyIpv4(),
-        ec2.Port.tcp(8000),
-        "Allow all traffic on port 8000"
+        ec2.Port.tcp(80),
+        "Allow outbound HTTP traffic"
     );
 
     const alb = new elbv2.ApplicationLoadBalancer(this, "HSDjangoALB", {
@@ -188,7 +190,7 @@ export class HSMyArchitectureStack extends cdk.Stack {
     const djangoContainer = taskDefinition.addContainer("django", {
         image: ecs.ContainerImage.fromEcrRepository(repository, "latest"),
         memoryLimitMiB: 512,
-        portMappings: [{ containerPort: 8000 }],
+        portMappings: [{ containerPort: 80 }],
         logging: new ecs.AwsLogDriver({
             streamPrefix: "django",
         }),
@@ -252,30 +254,22 @@ export class HSMyArchitectureStack extends cdk.Stack {
 
     serviceSecurityGroup.addIngressRule(
         albSecurityGroup,
-        ec2.Port.tcp(8000),
+        ec2.Port.tcp(80),
         "Allow access from ALB"
     );
 
-    // Allow outbound traffic to RDS
-    // serviceSecurityGroup.addEgressRule(
-    //     ec2.Peer.anyIpv4(),
-    //     ec2.Port.tcp(5432),
-    //     "Allow PostgreSQL outbound traffic"
-    // );
-
-    // Allow outbound traffic to ALB
+    // Allow outbound traffic
     serviceSecurityGroup.addEgressRule(
         ec2.Peer.anyIpv4(),
-        ec2.Port.tcp(8000),
+        ec2.Port.tcp(80),
         "Allow HTTP outbound traffic"
     );
 
-    const listener = alb.addListener("HSDjangoListener", {
-        port: 8000,
-    });
-
-    listener.addTargets("HSDjangoTarget", {
-        port: 8000,
+    // Create target group for the ALB
+    const targetGroup = new elbv2.ApplicationTargetGroup(this, 'HSMainTargetGroup', {
+        vpc,
+        port: 80,
+        protocol: elbv2.ApplicationProtocol.HTTP,
         targets: [service],
         healthCheck: {
             path: "/health/",
@@ -283,9 +277,54 @@ export class HSMyArchitectureStack extends cdk.Stack {
             timeout: cdk.Duration.seconds(30),
             healthyThresholdCount: 2,
             unhealthyThresholdCount: 2,
-            protocol: elbv2.Protocol.HTTP,
-            port: "8000",
+            port: "80"
         },
+        deregistrationDelay: cdk.Duration.seconds(5)
+    });
+
+    // Create ALB listener with sticky sessions
+    const httpListener = alb.addListener("HSHttpListener", {
+        port: 80,
+        protocol: elbv2.ApplicationProtocol.HTTP,
+        defaultAction: elbv2.ListenerAction.forward([targetGroup], {
+            stickinessDuration: cdk.Duration.days(1)
+        })
+    });
+
+    // Create CloudFront distribution
+    const distribution = new cloudfront.Distribution(this, 'HSCloudFrontDistribution', {
+      defaultBehavior: {
+        origin: new origins.LoadBalancerV2Origin(alb, {
+          protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
+          httpPort: 80,
+          readTimeout: cdk.Duration.seconds(60),
+          keepaliveTimeout: cdk.Duration.seconds(60)
+        }),
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+        originRequestPolicy: new cloudfront.OriginRequestPolicy(this, 'HSOriginRequestPolicy', {
+          cookieBehavior: cloudfront.OriginRequestCookieBehavior.all(),
+          headerBehavior: cloudfront.OriginRequestHeaderBehavior.allowList(
+            'Host',
+            'X-CSRFToken',
+            'Content-Type',
+            'Accept',
+            'Origin',
+            'Referer'
+          ),
+          queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.all()
+        }),
+        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED
+      },
+      enabled: true,
+      defaultRootObject: '/',
+      priceClass: cloudfront.PriceClass.PRICE_CLASS_200
+    });
+
+    // Output CloudFront domain
+    new cdk.CfnOutput(this, 'CloudFrontDomain', {
+      value: distribution.distributionDomainName,
+      description: 'CloudFront Distribution Domain'
     });
   }
 }

@@ -28,11 +28,18 @@ else:
     user.save()
 END
 
-echo "Starting Gunicorn..."
-exec gunicorn product_management.wsgi:application \
-    --bind 0.0.0.0:8000 \
-    --workers ${GUNICORN_WORKERS:-4} \
-    --timeout 120 \
-    --access-logfile - \
-    --error-logfile - \
-    --log-level info
+# Start uWSGI in background
+echo "Starting uWSGI..."
+uwsgi --ini /app/uwsgi.ini &
+
+# Wait for uWSGI socket to be created
+while [ ! -S /tmp/uwsgi.sock ]; do
+    echo "Waiting for uWSGI socket..."
+    sleep 1
+done
+
+# Ensure proper permissions for the socket
+chmod 666 /tmp/uwsgi.sock
+
+echo "Starting Nginx..."
+nginx -g "daemon off;"
